@@ -28,6 +28,17 @@ class Skillshare(object):
         else:
             return False
 
+    def extract_video_hashed_id_from_s(self, s):
+       video_id = None
+       if 'video_hashed_id' in s and s['video_hashed_id']:
+           video_id = s['video_hashed_id'].split(':')[1]
+       elif 'video_thumbnail_url' in s:
+           url = s['video_thumbnail_url']
+           start_index = url.find('thumbnails/') + len('thumbnails/')
+           video_id = url[start_index:].split('/')[0]
+           print(f'THUMBNAIL {video_id=}')
+       return video_id
+
     # get class id from url and sends to download_course_by_class_id
     def download_course_by_url(self, url, boolSubtitle, boolResources):
         class_id = self.course_is_url_to_id(url)
@@ -100,27 +111,31 @@ class Skillshare(object):
                 video_id = None
 
                 if 'video_hashed_id' in s:
-                    if s['video_hashed_id']:
-                        video_id = s['video_hashed_id'].split(':')[1]
+                    #if s['video_hashed_id']:
+                    #    video_id = s['video_hashed_id'].split(':')[1]
+                    #print(s)
+                    video_id = self.extract_video_hashed_id_from_s(s)
+                    try:
+                        assert video_id, 'Failed to read video ID from data'
 
-                    assert video_id, 'Failed to read video ID from data'
+                        s_title = s['title']
 
-                    s_title = s['title']
+                        if self.is_unicode_string(s_title):
+                            s_title = s_title.encode('ascii', 'replace')
 
-                    if self.is_unicode_string(s_title):
-                        s_title = s_title.encode('ascii', 'replace')
+                        file_name = '{} - {}'.format(
+                            str(s['index'] + 1).zfill(2),
+                            slugify(s_title),
+                        )
 
-                    file_name = '{} - {}'.format(
-                        str(s['index'] + 1).zfill(2),
-                        slugify(s_title),
-                    )
-
-                    self.download_video(
-                        fpath='{base_path}/{session}.mp4'.format(base_path=self.base_path, session=file_name),
-                        video_id=video_id,
-                        tPath='{t_path}/{session}.mp4'.format(t_path=temp_base_path, session=file_name),
-                        boolSubtitle=boolSubtitle
-                    )
+                        self.download_video(
+                            fpath='{base_path}/{session}.mp4'.format(base_path=self.base_path, session=file_name),
+                            video_id=video_id,
+                            tPath='{t_path}/{session}.mp4'.format(t_path=temp_base_path, session=file_name),
+                            boolSubtitle=boolSubtitle
+                        )
+                    except Exception:
+                        print("Failed to identify next video, continuing with next one available")
 
         self.downloadResources(boolResources)
         print("Download Completed :D\ncheck {}".format(self.base_path))

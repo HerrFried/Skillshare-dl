@@ -49,3 +49,4 @@ python3 downloader.py
 
 ##  Credits
  - [kallqvist](https://github.com/kallqvist)
+ - [k4anubhav](https://github.com/k4anubhav/Skillshare-dl)
